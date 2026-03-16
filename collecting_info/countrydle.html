@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geo Trivia Game</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        body {
+            background-color: #f6f5ef;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 60px;
+            color: #333;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 500px;
+            box-sizing: border-box;
+            padding: 0 15px;
+        }
+
+        .input-group {
+            display: flex;
+            margin-bottom: 25px;
+            width: 100%;
+            position: relative;
+        }
+
+        .autocomplete-container {
+            position: relative;
+            flex-grow: 1;
+        }
+
+        #guess-input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 18px 20px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            border: 3px solid #000;
+            border-radius: 12px;
+            outline: none;
+            color: #000;
+        }
+
+        #guess-input::placeholder {
+            color: #a0a0a0;
+            font-weight: 600;
+        }
+
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: #fff;
+            border: 3px solid #000;
+            border-radius: 12px;
+            margin-top: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 10;
+            display: none;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.05);
+        }
+
+        .autocomplete-item {
+            padding: 12px 20px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 2px solid #f0f0f0;
+            transition: background-color 0.2s;
+        }
+
+        .autocomplete-item:hover {
+            background-color: #f0f0f0;
+        }
+
+        #submit-btn {
+            padding: 15px 20px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border: 3px solid #000;
+            border-radius: 12px;
+            margin-left: 10px;
+            background-color: #fff;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #submit-btn:hover {
+            background-color: #e8e8e8;
+        }
+
+        .card {
+            background-color: #fff;
+            border: 3px solid #000;
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.05);
+        }
+
+        /* Added a header to show remaining guesses */
+        #guess-counter {
+            text-align: center;
+            font-weight: 800;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+        }
+
+        .clues-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .clue-box {
+            border: 3px solid #000;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            background-color: #fff; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 70px;
+            word-break: break-word;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .clue-box.bg-green {
+            background-color: #d4edda;
+            border-color: #28a745;
+        }
+
+        .clue-box.bg-red {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+        }
+
+        .clue-title {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 8px;
+        }
+
+        .clue-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #000;
+        }
+
+        .guess-feedback {
+            font-size: 0.85rem;
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px dashed rgba(0,0,0,0.2);
+            color: #333;
+            font-weight: 600;
+            width: 100%;
+            display: none;
+        }
+
+        .guess-feedback span.arrow {
+            font-size: 1.3rem;
+        }
+
+        /* Reused for both the flag and the anthem so they span the full width */
+        .full-width-container {
+            grid-column: span 2;
+        }
+
+        .full-width-container img {
+            max-width: 100%;
+            height: auto;
+            max-height: 180px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            object-fit: contain;
+            margin-top: 10px;
+        }
+
+        .full-width-container audio {
+            width: 100%;
+            margin-top: 10px;
+            outline: none;
+        }
+
+        #message-area {
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: 800;
+            margin-top: 25px;
+            min-height: 30px;
+        }
+
+        #play-again-btn {
+            display: none;
+            margin: 20px auto;
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border: 3px solid #000;
+            border-radius: 12px;
+            background-color: #8fd165;
+            color: #000;
+            cursor: pointer;
+        }
+
+        #play-again-btn:hover {
+            background-color: #7bc550;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div class="input-group">
+        <div class="autocomplete-container">
+            <input type="text" id="guess-input" placeholder="Loading data..." autocomplete="off" disabled>
+            <div id="autocomplete-list" class="autocomplete-list"></div>
+        </div>
+        <button id="submit-btn" onclick="handleGuess()" disabled>Guess</button>
+    </div>
+
+    <div class="card">
+        <div id="guess-counter">Guess 1 of 7</div>
+        <div id="clues-container" class="clues-grid"></div>
+    </div>
+
+    <div id="message-area"></div>
+    <button id="play-again-btn" onclick="initialiseGame()">Play Again</button>
+</div>
+
+<script>
+    let df = []; 
+    let targetCountry;
+    let availableFacts = [];
+    let guessCount = 0;
+    const MAX_GUESSES = 7;
+
+    window.onload = function() {
+        Papa.parse('country_info.csv', {
+            download: true,
+            header: true,
+            skipEmptyLines: true,
+            complete: function(results) {
+                df = results.data;
+                initialiseGame();
+            },
+            error: function(error) {
+                console.error("Error loading the CSV:", error);
+                document.getElementById('message-area').innerText = "Failed to load country data. Check the console.";
+            }
+        });
+    };
+
+    function updateGuessCounter() {
+        const remaining = MAX_GUESSES - guessCount;
+        if (remaining > 0) {
+            document.getElementById('guess-counter').innerText = `Guess ${guessCount + 1} of ${MAX_GUESSES}`;
+        } else {
+            document.getElementById('guess-counter').innerText = "Out of Guesses!";
+        }
+    }
+
+    function initialiseGame() {
+        targetCountry = df[Math.floor(Math.random() * df.length)];
+        
+        availableFacts = ['languages', 'largest_religion', 'area_total', 'population', 'currency', 'time_zone', 'observes_dst', 'calling_code'];
+        availableFacts.sort(() => 0.5 - Math.random());
+        
+        guessCount = 0;
+
+        document.getElementById('clues-container').innerHTML = '';
+        document.getElementById('message-area').innerText = '';
+        updateGuessCounter();
+        
+        const guessInput = document.getElementById('guess-input');
+        guessInput.value = '';
+        guessInput.disabled = false;
+        guessInput.placeholder = "Type a country name...";
+        
+        document.getElementById('submit-btn').disabled = false;
+        document.getElementById('play-again-btn').style.display = 'none';
+
+        showNextClue();
+    }
+
+    function showNextClue() {
+        const container = document.getElementById('clues-container');
+
+        if (guessCount < 5) {
+            // Guesses 1 through 5: Show text/numerical facts
+            const factKey = availableFacts.pop();
+            let factValue = targetCountry[factKey];
+            let displayVal = factValue;
+            
+            if (factKey === 'observes_dst') {
+                displayVal = (factValue === '1') ? 'Yes' : 'No';
+            }
+            
+            const formatTitle = factKey.replace(/_/g, ' ').toUpperCase();
+            
+            const clueBox = document.createElement('div');
+            clueBox.className = 'clue-box data-clue';
+            clueBox.setAttribute('data-category', factKey);
+            
+            clueBox.innerHTML = `
+                <div class="clue-title">${formatTitle}</div>
+                <div class="clue-value">${displayVal || 'Unknown'}</div>
+                <div class="guess-feedback"></div>
+            `;
+            container.appendChild(clueBox);
+
+        } else if (guessCount === 5) {
+            // Guess 6: Show the Flag
+            const clueBox = document.createElement('div');
+            clueBox.className = 'clue-box full-width-container';
+            const imgPath = encodeURI(targetCountry.flag_path);
+            
+            clueBox.innerHTML = `
+                <div class="clue-title">FLAG</div>
+                <img src="${imgPath}" alt="Flag clue" onerror="this.src=''; this.alt='Flag image missing';">
+            `;
+            container.appendChild(clueBox);
+
+        } else if (guessCount === 6) {
+            // Guess 7: Show the Anthem Audio Player
+            const clueBox = document.createElement('div');
+            clueBox.className = 'clue-box full-width-container';
+            
+            // If the anthem path is missing or blank, we show a fallback message
+            let audioContent = `<div class="clue-value" style="font-size: 1rem; color: #888;">Anthem file unavailable</div>`;
+            
+            if (targetCountry.anthem_path && targetCountry.anthem_path.trim() !== '') {
+                const audioPath = encodeURI(targetCountry.anthem_path);
+                audioContent = `
+                    <audio controls controlsList="nodownload noplaybackrate">
+                        <source src="${audioPath}">
+                        Your browser does not support the audio element.
+                    </audio>
+                `;
+            }
+
+            clueBox.innerHTML = `
+                <div class="clue-title">NATIONAL ANTHEM</div>
+                ${audioContent}
+            `;
+            container.appendChild(clueBox);
+        }
+    }
+
+    function parseNumber(str) {
+        if (!str) return 0;
+        let s = String(str).toLowerCase().replace(/,/g, '');
+        let multi = 1;
+        if (s.includes('million')) multi = 1000000;
+        if (s.includes('billion')) multi = 1000000000;
+        let match = s.match(/-?[\d.]+/); 
+        if (match) {
+            return parseFloat(match[0]) * multi;
+        }
+        return 0;
+    }
+
+    function isMatch(cat, tVal, gVal) {
+        if (!tVal || !gVal) return false;
+        if (cat === 'observes_dst') return String(tVal) === String(gVal);
+
+        let t = String(tVal).toLowerCase();
+        let g = String(gVal).toLowerCase();
+
+        if (t === g || t.includes(g) || g.includes(t)) return true;
+
+        let tWords = t.match(/[a-z]+/g) || [];
+        let gWords = g.match(/[a-z]+/g) || [];
+        let stopWords = ['and', 'the', 'official', 'other', 'sq', 'km', 'mi', 'utc', 'cet', 'million', 'billion', 'percent'];
+
+        tWords = tWords.filter(w => w.length > 3 && !stopWords.includes(w));
+        gWords = gWords.filter(w => w.length > 3 && !stopWords.includes(w));
+
+        for (let w of tWords) {
+            if (gWords.includes(w)) return true;
+        }
+        return false;
+    }
+
+    function handleGuess() {
+        const guess = document.getElementById('guess-input').value.trim();
+        if (!guess) return;
+
+        document.getElementById('autocomplete-list').style.display = 'none';
+
+        if (guess.toLowerCase() === targetCountry.name.toLowerCase()) {
+            document.querySelectorAll('.data-clue').forEach(box => {
+                box.classList.remove('bg-red');
+                box.classList.add('bg-green');
+                box.querySelector('.guess-feedback').style.display = 'none';
+            });
+            endGame(`Well done! You guessed ${targetCountry.name} correctly.`, true);
+        } else {
+            const guessedCountryObj = df.find(c => c.name.toLowerCase() === guess.toLowerCase());
+            
+            if (guessedCountryObj) {
+                document.querySelectorAll('.data-clue').forEach(box => {
+                    const cat = box.getAttribute('data-category');
+                    const tValRaw = targetCountry[cat];
+                    const gValRaw = guessedCountryObj[cat];
+                    const feedbackDiv = box.querySelector('.guess-feedback');
+
+                    box.classList.remove('bg-green', 'bg-red');
+                    
+                    let gValDisplay = gValRaw || 'Unknown';
+                    if (cat === 'observes_dst') gValDisplay = (gValRaw === '1') ? 'Yes' : 'No';
+
+                    if (cat === 'area_total' || cat === 'population') {
+                        let tNum = parseNumber(tValRaw);
+                        let gNum = parseNumber(gValRaw);
+
+                        if (tNum === gNum && tNum !== 0) {
+                            box.classList.add('bg-green');
+                            feedbackDiv.style.display = 'none';
+                        } else {
+                            box.classList.add('bg-red');
+                            let arrow = tNum > gNum ? '⬆️' : '⬇️';
+                            feedbackDiv.innerHTML = `${guessedCountryObj.name}:<br>${gValDisplay} <span class="arrow">${arrow}</span>`;
+                            feedbackDiv.style.display = 'block';
+                        }
+                    } else {
+                        if (isMatch(cat, tValRaw, gValRaw)) {
+                            box.classList.add('bg-green');
+                        } else {
+                            box.classList.add('bg-red');
+                        }
+                        feedbackDiv.innerHTML = `${guessedCountryObj.name}:<br>${gValDisplay}`;
+                        feedbackDiv.style.display = 'block';
+                    }
+                });
+            }
+
+            guessCount++;
+            updateGuessCounter();
+            document.getElementById('guess-input').value = ''; 
+            
+            if (guessCount < MAX_GUESSES) {
+                showNextClue();
+            } else {
+                endGame(`Game Over! The correct answer was ${targetCountry.name}.`, false);
+            }
+        }
+    }
+
+    function endGame(message, isWin) {
+        document.getElementById('message-area').innerText = message;
+        document.getElementById('message-area').style.color = isWin ? '#4caf50' : '#e53935';
+        document.getElementById('guess-input').disabled = true;
+        document.getElementById('submit-btn').disabled = true;
+        document.getElementById('play-again-btn').style.display = 'block';
+    }
+
+    const guessInput = document.getElementById('guess-input');
+    const autocompleteList = document.getElementById('autocomplete-list');
+
+    guessInput.addEventListener('input', function() {
+        const val = this.value.trim().toLowerCase();
+        autocompleteList.innerHTML = '';
+        
+        if (!val) {
+            autocompleteList.style.display = 'none';
+            return;
+        }
+
+        const matches = df.filter(country => 
+            country.name && country.name.toLowerCase().startsWith(val)
+        );
+
+        if (matches.length > 0) {
+            autocompleteList.style.display = 'block';
+            matches.forEach(match => {
+                const item = document.createElement('div');
+                item.className = 'autocomplete-item';
+                item.innerText = match.name;
+                
+                item.addEventListener('click', function() {
+                    guessInput.value = match.name;
+                    autocompleteList.innerHTML = '';
+                    autocompleteList.style.display = 'none';
+                    guessInput.focus();
+                });
+                
+                autocompleteList.appendChild(item);
+            });
+        } else {
+            autocompleteList.style.display = 'none';
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        if (e.target !== guessInput) {
+            autocompleteList.innerHTML = '';
+            autocompleteList.style.display = 'none';
+        }
+    });
+
+    guessInput.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            handleGuess();
+            autocompleteList.innerHTML = '';
+            autocompleteList.style.display = 'none';
+        }
+    });
+</script>
+
+</body>
+</html>
