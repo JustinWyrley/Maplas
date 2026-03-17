@@ -81,6 +81,12 @@
             background-color: #f0f0f0;
         }
 
+        /* Highlight for keyboard navigation */
+        .autocomplete-active {
+            background-color: #e9e9e9 !important;
+            border-left: 4px solid #8fd165;
+        }
+
         #submit-btn {
             padding: 15px 20px;
             font-size: 1.1rem;
@@ -106,7 +112,6 @@
             box-shadow: 0 4px 0 rgba(0,0,0,0.05);
         }
 
-        /* Added a header to show remaining guesses */
         #guess-counter {
             text-align: center;
             font-weight: 800;
@@ -178,7 +183,6 @@
             font-size: 1.3rem;
         }
 
-        /* Reused for both the flag and the anthem so they span the full width */
         .full-width-container {
             grid-column: span 2;
         }
@@ -304,7 +308,6 @@
         const container = document.getElementById('clues-container');
 
         if (guessCount < 5) {
-            // Guesses 1 through 5: Show text/numerical facts
             const factKey = availableFacts.pop();
             let factValue = targetCountry[factKey];
             let displayVal = factValue;
@@ -327,7 +330,6 @@
             container.appendChild(clueBox);
 
         } else if (guessCount === 5) {
-            // Guess 6: Show the Flag
             const clueBox = document.createElement('div');
             clueBox.className = 'clue-box full-width-container';
             const imgPath = encodeURI(targetCountry.flag_path);
@@ -339,11 +341,9 @@
             container.appendChild(clueBox);
 
         } else if (guessCount === 6) {
-            // Guess 7: Show the Anthem Audio Player
             const clueBox = document.createElement('div');
             clueBox.className = 'clue-box full-width-container';
             
-            // If the anthem path is missing or blank, we show a fallback message
             let audioContent = `<div class="clue-value" style="font-size: 1rem; color: #888;">Anthem file unavailable</div>`;
             
             if (targetCountry.anthem_path && targetCountry.anthem_path.trim() !== '') {
@@ -403,7 +403,7 @@
         const guess = document.getElementById('guess-input').value.trim();
         if (!guess) return;
 
-        document.getElementById('autocomplete-list').style.display = 'none';
+        closeAllLists();
 
         if (guess.toLowerCase() === targetCountry.name.toLowerCase()) {
             document.querySelectorAll('.data-clue').forEach(box => {
@@ -472,12 +472,15 @@
         document.getElementById('play-again-btn').style.display = 'block';
     }
 
+    // --- AUTOCOMPLETE LOGIC ---
     const guessInput = document.getElementById('guess-input');
     const autocompleteList = document.getElementById('autocomplete-list');
+    let currentFocus = -1;
 
     guessInput.addEventListener('input', function() {
         const val = this.value.trim().toLowerCase();
         autocompleteList.innerHTML = '';
+        currentFocus = -1;
         
         if (!val) {
             autocompleteList.style.display = 'none';
@@ -490,15 +493,14 @@
 
         if (matches.length > 0) {
             autocompleteList.style.display = 'block';
-            matches.forEach(match => {
+            matches.forEach((match, index) => {
                 const item = document.createElement('div');
                 item.className = 'autocomplete-item';
                 item.innerText = match.name;
                 
                 item.addEventListener('click', function() {
                     guessInput.value = match.name;
-                    autocompleteList.innerHTML = '';
-                    autocompleteList.style.display = 'none';
+                    closeAllLists();
                     guessInput.focus();
                 });
                 
@@ -509,18 +511,53 @@
         }
     });
 
-    document.addEventListener('click', function(e) {
-        if (e.target !== guessInput) {
-            autocompleteList.innerHTML = '';
-            autocompleteList.style.display = 'none';
+    guessInput.addEventListener('keydown', function(e) {
+        let items = autocompleteList.getElementsByTagName('div');
+        
+        if (e.key === 'ArrowDown') {
+            currentFocus++;
+            addActive(items);
+        } else if (e.key === 'ArrowUp') {
+            currentFocus--;
+            addActive(items);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            
+            if (currentFocus > -1) {
+                if (items) items[currentFocus].click();
+            } else {
+                handleGuess();
+                closeAllLists();
+            }
         }
     });
 
-    guessInput.addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') {
-            handleGuess();
-            autocompleteList.innerHTML = '';
-            autocompleteList.style.display = 'none';
+    function addActive(items) {
+        if (!items || items.length === 0) return false;
+        removeActive(items);
+        
+        if (currentFocus >= items.length) currentFocus = 0;
+        if (currentFocus < 0) currentFocus = (items.length - 1);
+        
+        items[currentFocus].classList.add('autocomplete-active');
+        items[currentFocus].scrollIntoView({ block: 'nearest' });
+    }
+
+    function removeActive(items) {
+        for (let i = 0; i < items.length; i++) {
+            items[i].classList.remove('autocomplete-active');
+        }
+    }
+
+    function closeAllLists() {
+        autocompleteList.innerHTML = '';
+        autocompleteList.style.display = 'none';
+        currentFocus = -1;
+    }
+
+    document.addEventListener('click', function(e) {
+        if (e.target !== guessInput) {
+            closeAllLists();
         }
     });
 </script>
