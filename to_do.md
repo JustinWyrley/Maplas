@@ -20,5 +20,6 @@
 - [ ] Change alochol consumption to a ranking
 - [ ] Could add country shape
 - [ ] Use bordering countries to have list of countries and number of countries that it borders
-- [ ] If you press enter when it is empty that should not use a guess 
+- [ ] If you press enter when it is empty that should not use a guess
+- [ ] When showing timezone only show utc +/- number and then say if the correct answer is higher or lower 
   
