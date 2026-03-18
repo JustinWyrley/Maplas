@@ -1,7 +1,7 @@
 # Notes for things that still need to be done 
 
-- [ ] Finalise country list 
-- [ ] Manually add data where needed e.g. Afghanistan calling code
+- [x] Finalise country list 
+- [x] Manually add data where needed e.g. Afghanistan calling code
 - [ ] Round numbers such as area_total
 - [ ] Clean data e.g. provide only number not extra bs ,dst shld onlu show relative to utc 
 - [ ] Reorder and rank information 
