@@ -383,7 +383,7 @@
         document.getElementById('play-again-btn').style.display = 'none';
 
         showNextClue();
-        guessInput.focus(); // Automatically focuses the input when a new round starts
+        guessInput.focus(); 
     }
 
     function showNextClue() {
@@ -478,25 +478,23 @@
 
         if (!guess) return;
 
-        // --- NEW LOGIC: Validation Check ---
         const guessedCountryObj = df.find(c => c.name && c.name.toLowerCase() === guess.toLowerCase());
         
         if (!guessedCountryObj) {
             msgArea.innerText = "Please select a valid country from the list.";
             msgArea.style.color = '#e53935';
             
-            // Clear the warning after a few seconds
             setTimeout(() => {
                 if (msgArea.innerText === "Please select a valid country from the list.") {
                     msgArea.innerText = "";
                     msgArea.style.color = '#333';
                 }
             }, 2500);
-            return; // Exit early without burning a guess
+            return; 
         }
 
         closeAllLists();
-        msgArea.innerText = ""; // Clear any previous warnings
+        msgArea.innerText = ""; 
 
         if (guess.toLowerCase() === targetCountry.name.toLowerCase()) {
             document.querySelectorAll('.data-clue').forEach(box => {
@@ -572,13 +570,14 @@
         
         const playAgainBtn = document.getElementById('play-again-btn');
         playAgainBtn.style.display = 'block';
-        playAgainBtn.focus(); // Automatically focuses the next round button
+        playAgainBtn.focus(); 
     }
 
     const guessInput = document.getElementById('guess-input');
     const autocompleteList = document.getElementById('autocomplete-list');
     let currentFocus = -1;
 
+    // --- UPDATED LOGIC: Substring matching ---
     guessInput.addEventListener('input', function() {
         const val = this.value.trim().toLowerCase();
         autocompleteList.innerHTML = '';
@@ -589,8 +588,9 @@
             return;
         }
 
+        // Switched from .startsWith(val) to .includes(val)
         const matches = df.filter(country => 
-            country.name && country.name.toLowerCase().startsWith(val)
+            country.name && country.name.toLowerCase().includes(val)
         );
 
         if (matches.length > 0) {
@@ -598,7 +598,14 @@
             matches.forEach((match, index) => {
                 const item = document.createElement('div');
                 item.className = 'autocomplete-item';
-                item.innerText = match.name;
+                
+                // Highlight the matching portion of the string
+                const matchIndex = match.name.toLowerCase().indexOf(val);
+                const beforeMatch = match.name.substring(0, matchIndex);
+                const matchText = match.name.substring(matchIndex, matchIndex + val.length);
+                const afterMatch = match.name.substring(matchIndex + val.length);
+                
+                item.innerHTML = `${beforeMatch}<strong>${matchText}</strong>${afterMatch}`;
                 
                 item.addEventListener('click', function() {
                     guessInput.value = match.name;
@@ -613,7 +620,6 @@
         }
     });
 
-    // --- NEW LOGIC: 'Enter' key routing ---
     guessInput.addEventListener('keydown', function(e) {
         let items = autocompleteList.getElementsByTagName('div');
         
@@ -624,22 +630,19 @@
             currentFocus--;
             addActive(items);
         } else if (e.key === 'Enter') {
-            e.preventDefault(); // Stop standard form submission behaviour
+            e.preventDefault(); 
             
             if (currentFocus > -1) {
-                // User has manually highlighted a suggestion
                 if (items && items.length > 0) {
                     guessInput.value = items[currentFocus].innerText;
                     closeAllLists();
                     handleGuess();
                 }
             } else if (items && items.length > 0) {
-                // User pressed enter without highlighting, pick the top suggestion
                 guessInput.value = items[0].innerText;
                 closeAllLists();
                 handleGuess();
             } else {
-                // No suggestions available, just pass the raw string to the handler for validation
                 closeAllLists();
                 handleGuess();
             }
