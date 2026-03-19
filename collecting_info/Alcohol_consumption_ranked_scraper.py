@@ -83,38 +83,47 @@ def clean_country_names(df):
     df['country'] = df['country'].replace(replacements)
     return df
 
+def create_ranking(df):
+    """Add alcohol consumption ranking (1 = highest)"""
+    df = df.sort_values('alcohol_consumption', ascending=False).reset_index(drop=True)
+    df['alcohol_consumption_ranked'] = range(1, len(df) + 1)
+    return df
+
 def main():
-    # Step 1: Scrape alcohol data
     print("Scraping Wikipedia for alcohol consumption data...")
     df_wiki = scrape_alcohol_data()
     if df_wiki.empty:
-        print("No data scraped from Wikipedia.")
+        print("No data scraped. Exiting.")
         return
 
     df_wiki = clean_country_names(df_wiki)
-    print(f"Scraped {len(df_wiki)} countries from Wikipedia.\n")
+    df_wiki = create_ranking(df_wiki)
 
-    # Step 2: Load CSV
+    # Rename 'country' column to match your CSV 'name'
+    df_wiki.rename(columns={'country': 'name'}, inplace=True)
+
+    print(f"Scraped and ranked {len(df_wiki)} countries.")
+
+    # Load CSV
     try:
         df_csv = pd.read_csv('country_info_updated.csv')
         if 'name' not in df_csv.columns:
-            print("CSV does not have a 'name' column.")
+            print("CSV does not have a 'name' column. Exiting.")
             return
-        print(f"Loaded CSV with {len(df_csv)} rows.\n")
     except FileNotFoundError:
-        print("File country_info_updated.csv not found.")
+        print("File country_info_updated.csv not found. Exiting.")
         return
 
-    # Step 3: Merge on 'country'
-    df_merged = df_csv.merge(df_wiki, on='name', how='left')
+    # Merge scraped data into CSV
+    df_merged = df_csv.merge(df_wiki[['name', 'alcohol_consumption', 'alcohol_consumption_ranked']],
+                             on='name', how='left')
 
-    # Step 4: Show summary
     matched = df_merged['alcohol_consumption'].notna().sum()
-    print(f"Successfully matched {matched} out of {len(df_merged)} countries.\n")
+    print(f"Successfully matched {matched} out of {len(df_merged)} countries.")
 
-    # Step 5: Save merged CSV
+    # Save updated CSV
     df_merged.to_csv('country_info_updated.csv', index=False)
-    print("Updated country_info_updated.csv with alcohol_consumption column.")
+    print("Updated country_info_updated.csv with alcohol_consumption and ranking.")
 
 if __name__ == "__main__":
     main()
