@@ -1,10 +1,10 @@
 # Notes for things that still need to be done 
 
-- [x] Finalise country list 
-- [x] Manually add data where needed e.g. Afghanistan calling code
-- [x] Round numbers such as area_total
-- [x] Clean data e.g. provide only number not extra bs ,dst shld onlu show relative to utc 
-- [x] Reorder and rank information 
+- [ ] Finalise country list 
+- [ ] Manually add data where needed e.g. Afghanistan calling code
+- [ ] Round numbers such as area_total
+- [ ] Clean data e.g. provide only number not extra bs ,dst shld onlu show relative to utc 
+- [ ] Reorder and rank information 
 - [x] use arrow keys to navigate shown options
 - [ ] Little information note under each hint to show what it means, e.g: " Observed dst" might be unclear 
 - [ ] Decide on a housestyle, so like 3 colours, fonts we use
