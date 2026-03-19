@@ -97,8 +97,8 @@ def main():
     # Step 2: Load CSV
     try:
         df_csv = pd.read_csv('country_info_updated.csv')
-        if 'country' not in df_csv.columns:
-            print("CSV does not have a 'country' column.")
+        if 'name' not in df_csv.columns:
+            print("CSV does not have a 'name' column.")
             return
         print(f"Loaded CSV with {len(df_csv)} rows.\n")
     except FileNotFoundError:
@@ -106,7 +106,7 @@ def main():
         return
 
     # Step 3: Merge on 'country'
-    df_merged = df_csv.merge(df_wiki, on='country', how='left')
+    df_merged = df_csv.merge(df_wiki, on='name', how='left')
 
     # Step 4: Show summary
     matched = df_merged['alcohol_consumption'].notna().sum()
