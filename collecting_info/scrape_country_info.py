@@ -18,11 +18,10 @@ HEADERS = {
 session = requests.Session()
 session.headers.update(HEADERS)
 
-# FIX: status_forcelist is now a list
 retry_strategy = Retry(
     total=5,
     backoff_factor=5, 
-    status_forcelist=[429, 500, 502, 503, 504], # Added standard server errors for extra resilience
+    status_forcelist=[429, 500, 502, 503, 504],
     respect_retry_after_header=True
 )
 adapter = HTTPAdapter(max_retries=retry_strategy)
@@ -39,7 +38,6 @@ def download_media(url, filepath):
         url = 'https:' + url
 
     try:
-        # Using the session instead of requests.get
         response = session.get(url, stream=True, timeout=15)
         response.raise_for_status()
         
@@ -56,14 +54,15 @@ def download_media(url, filepath):
 def extract_country_facts(html_excerpt):
     soup = BeautifulSoup(html_excerpt, 'html.parser')
 
+    # Updated keys to reflect Nominal GDP
     facts = {
         'capital': None,
         'languages': None,
         'largest_religion': None,
         'area_total': None,
         'population': None,
-        'gdp_ppp_total': None,
-        'gdp_ppp_per_capita': None,
+        'gdp_nominal_total': None, # Does not work
+        'gdp_nominal_per_capita': None, # Does not work
         'currency': None,
         'time_zone': None,
         'observes_dst': 0,
@@ -76,38 +75,46 @@ def extract_country_facts(html_excerpt):
         th = row.find('th')
         td = row.find('td')
 
-        # Wikipedia often uses a <th> with no <td> (often with colspan="2") for section headers.
-        # This is a much safer way to track the current section than relying on CSS classes.
         if th and not td:
             header_text = th.get_text(separator=" ", strip=True).lower()
-            if 'gdp' in header_text and 'ppp' in header_text:
-                current_category = 'gdp_ppp'
+            
+            # Switch to targeting the Nominal GDP header
+            if 'gdp' in header_text and 'nominal' in header_text:
+                current_category = 'gdp_nominal'
             elif 'population' in header_text:
                 current_category = 'population'
             elif 'area' in header_text:
                 current_category = 'area'
             else:
-                current_category = None # Reset if it's an unrelated section
+                current_category = None 
             continue
 
-        # If we don't have both a header and a data cell, skip it
         if not (th and td):
             continue
 
         label = th.get_text(separator=" ", strip=True).replace('\xa0', ' ').lower()
         clean_data = re.sub(r'\[.*?\]', '', td.get_text(separator=" ", strip=True)).strip()
 
-        # Handle independent rows first
         if 'capital' in label:
             facts['capital'] = clean_data
         elif 'official language' in label or 'national language' in label:
             facts['languages'] = clean_data
         elif 'religion' in label:
-            first_religion = td.find('li')
-            facts['largest_religion'] = (
-                re.sub(r'\[.*?\]', '', first_religion.get_text()).strip()
-                if first_religion else clean_data
-            )
+            
+            # Handle different Wikipedia formatting for lists (<br> or <li>)
+            for tag in td.find_all(['br', 'hr']):
+                tag.replace_with('\n')
+            for tag in td.find_all('li'):
+                tag.insert(0, '\n')
+                
+            text = td.get_text(separator=" ", strip=True)
+            text = re.sub(r'\[.*?\]', '', text).strip()
+            
+            # Split by newline and take the first valid line
+            lines = [line.strip() for line in text.split('\n') if line.strip()]
+            if lines:
+                facts['largest_religion'] = lines[0]
+                
         elif 'currency' in label:
             facts['currency'] = clean_data
         elif 'time zone' in label:
@@ -117,18 +124,15 @@ def extract_country_facts(html_excerpt):
         elif 'calling code' in label:
             facts['calling_code'] = clean_data
 
-        # Handle section-dependent rows
-        if current_category == 'gdp_ppp':
+        # Handle section-dependent rows using the new category
+        if current_category == 'gdp_nominal':
             if 'total' in label:
-                facts['gdp_ppp_total'] = clean_data
+                facts['gdp_nominal_total'] = clean_data
             elif 'per capita' in label:
-                facts['gdp_ppp_per_capita'] = clean_data
+                facts['gdp_nominal_per_capita'] = clean_data
                 
         elif current_category == 'population':
-            # Matches 'total', 'estimate', 'census', or a 20XX year pattern
             if 'total' in label or 'estimate' in label or 'census' in label or re.search(r'\b20\d{2}\b', label):
-                # Only grab the first matching population figure to avoid overwriting 
-                # the total with secondary data points lower in the section
                 if not facts['population']:
                     facts['population'] = clean_data
                     
@@ -141,14 +145,27 @@ def extract_country_facts(html_excerpt):
 
 def get_country_data(url):
     try:
-        # Using the session instead of requests.get
         response = session.get(url, timeout=10)
         response.raise_for_status()
         
         facts = extract_country_facts(response.text)
         soup = BeautifulSoup(response.text, 'html.parser')
         
-        flag_img = soup.select_one('.infobox-image img')
+        # More robust flag extraction logic
+        infobox = soup.select_one('.infobox')
+        flag_img = None
+        
+        if infobox:
+            # First, try to find an image explicitly mentioning 'flag' in alt text
+            flag_img = infobox.find('img', alt=re.compile(r'flag', re.IGNORECASE))
+            # If not found, try the source URL
+            if not flag_img:
+                flag_img = infobox.find('img', src=re.compile(r'flag', re.IGNORECASE))
+        
+        # Fallback to the original selector just in case
+        if not flag_img:
+            flag_img = soup.select_one('.infobox-image img')
+            
         flag_url = flag_img['src'] if flag_img else None
         
         audio_src = soup.select_one('.infobox audio source')
@@ -156,7 +173,6 @@ def get_country_data(url):
         
         country_slug = urllib.parse.unquote(url.split('/')[-1]).replace(' ', '_')
         
-        # Adding a tiny local sleep between media downloads just to be extra polite
         if flag_url:
             time.sleep(1) 
             ext = flag_url.split('.')[-1].split('?')[0]
@@ -192,7 +208,6 @@ def main():
         print(f"Processing: {url}")
         results.append(get_country_data(url))
         
-        # Reduced manual sleep because the Session handles errors automatically
         if index < len(df) - 1:
             time.sleep(2)
 
