@@ -242,7 +242,7 @@
 
         #message-area {
             text-align: center;
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             font-weight: 800;
             min-height: 30px;
             margin-top: 10px;
@@ -266,7 +266,6 @@
             background-color: #7bc550;
         }
 
-        /* Responsive layout for smaller screens */
         @media (max-width: 768px) {
             #main-layout {
                 flex-direction: column;
@@ -315,7 +314,7 @@
     const MAX_GUESSES = 7;
 
     const BROAD_CLUES = ['largest_religion', 'gdp_nominal_total', 'population', 'area_total', 'languages', 'currency', 'time_zone', 'observes_dst', 'calling_code'];
-    const SPECIFIC_CLUES = ['capital', 'flag', 'anthem']; // Most discriminating, shown last
+    const SPECIFIC_CLUES = ['capital', 'flag', 'anthem']; 
 
     window.onload = function() {
         Papa.parse('country_info_updated.csv', {
@@ -350,7 +349,6 @@
     function initialiseGame() {
         targetCountry = df[Math.floor(Math.random() * df.length)];
         
-        // Dynamically build the clue queue based solely on valid data
         let validSpecific = SPECIFIC_CLUES.filter(c => {
             if (c === 'flag') return isValidFact(targetCountry.flag_path);
             if (c === 'anthem') return isValidFact(targetCountry.anthem_path);
@@ -359,20 +357,21 @@
 
         let validBroad = BROAD_CLUES.filter(c => isValidFact(targetCountry[c]));
 
-        // Calculate how many broad clues we need to pad the queue
+        validSpecific.sort(() => 0.5 - Math.random());
+        validBroad.sort(() => 0.5 - Math.random());
+
         let neededBroad = MAX_GUESSES - validSpecific.length;
         let selectedBroad = validBroad.slice(0, Math.max(0, neededBroad));
 
-        // Combine into the final presentation order
         let cluesToShow = [...selectedBroad, ...validSpecific];
         
-        // Reverse so we can easily pop() from the end of the array
         availableFacts = cluesToShow.reverse();
         
         guessCount = 0;
 
         document.getElementById('clues-container').innerHTML = '';
         document.getElementById('message-area').innerText = '';
+        document.getElementById('message-area').style.color = '#333';
         updateCounters();
         
         const guessInput = document.getElementById('guess-input');
@@ -384,6 +383,7 @@
         document.getElementById('play-again-btn').style.display = 'none';
 
         showNextClue();
+        guessInput.focus(); // Automatically focuses the input when a new round starts
     }
 
     function showNextClue() {
@@ -472,10 +472,31 @@
     }
 
     function handleGuess() {
-        const guess = document.getElementById('guess-input').value.trim();
+        const guessInputEl = document.getElementById('guess-input');
+        const guess = guessInputEl.value.trim();
+        const msgArea = document.getElementById('message-area');
+
         if (!guess) return;
 
+        // --- NEW LOGIC: Validation Check ---
+        const guessedCountryObj = df.find(c => c.name && c.name.toLowerCase() === guess.toLowerCase());
+        
+        if (!guessedCountryObj) {
+            msgArea.innerText = "Please select a valid country from the list.";
+            msgArea.style.color = '#e53935';
+            
+            // Clear the warning after a few seconds
+            setTimeout(() => {
+                if (msgArea.innerText === "Please select a valid country from the list.") {
+                    msgArea.innerText = "";
+                    msgArea.style.color = '#333';
+                }
+            }, 2500);
+            return; // Exit early without burning a guess
+        }
+
         closeAllLists();
+        msgArea.innerText = ""; // Clear any previous warnings
 
         if (guess.toLowerCase() === targetCountry.name.toLowerCase()) {
             document.querySelectorAll('.data-clue').forEach(box => {
@@ -486,8 +507,6 @@
             currentStreak++;
             endGame(`Brilliant! You guessed ${targetCountry.name} correctly.`, true);
         } else {
-            const guessedCountryObj = df.find(c => c.name.toLowerCase() === guess.toLowerCase());
-            
             if (guessedCountryObj) {
                 document.querySelectorAll('.data-clue').forEach(box => {
                     const cat = box.getAttribute('data-category');
@@ -535,10 +554,10 @@
             
             if (guessCount < MAX_GUESSES) {
                 updateCounters();
-                document.getElementById('guess-input').value = ''; 
+                guessInputEl.value = ''; 
                 showNextClue();
             } else {
-                currentStreak = 0; // Reset streak on loss
+                currentStreak = 0; 
                 updateCounters();
                 endGame(`Game Over! The correct answer was ${targetCountry.name}.`, false);
             }
@@ -550,10 +569,12 @@
         document.getElementById('message-area').style.color = isWin ? '#4caf50' : '#e53935';
         document.getElementById('guess-input').disabled = true;
         document.getElementById('submit-btn').disabled = true;
-        document.getElementById('play-again-btn').style.display = 'block';
+        
+        const playAgainBtn = document.getElementById('play-again-btn');
+        playAgainBtn.style.display = 'block';
+        playAgainBtn.focus(); // Automatically focuses the next round button
     }
 
-    // --- AUTOCOMPLETE LOGIC ---
     const guessInput = document.getElementById('guess-input');
     const autocompleteList = document.getElementById('autocomplete-list');
     let currentFocus = -1;
@@ -592,6 +613,7 @@
         }
     });
 
+    // --- NEW LOGIC: 'Enter' key routing ---
     guessInput.addEventListener('keydown', function(e) {
         let items = autocompleteList.getElementsByTagName('div');
         
@@ -602,13 +624,24 @@
             currentFocus--;
             addActive(items);
         } else if (e.key === 'Enter') {
-            e.preventDefault();
+            e.preventDefault(); // Stop standard form submission behaviour
             
             if (currentFocus > -1) {
-                if (items) items[currentFocus].click();
-            } else {
-                handleGuess();
+                // User has manually highlighted a suggestion
+                if (items && items.length > 0) {
+                    guessInput.value = items[currentFocus].innerText;
+                    closeAllLists();
+                    handleGuess();
+                }
+            } else if (items && items.length > 0) {
+                // User pressed enter without highlighting, pick the top suggestion
+                guessInput.value = items[0].innerText;
                 closeAllLists();
+                handleGuess();
+            } else {
+                // No suggestions available, just pass the raw string to the handler for validation
+                closeAllLists();
+                handleGuess();
             }
         }
     });
