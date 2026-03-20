@@ -55,7 +55,7 @@ def scrape_land_borders():
         df.columns[3]: "Neighbors"
     })
 
-    # Standardize and simplify names
+    # Standardize names and simplify special countries
     df["name"] = df["name"].apply(standardize_main_countries)
     df = simplify_special_countries(df)
 
@@ -70,20 +70,22 @@ def standardize_main_countries(name):
         'Netherlands, Kingdom of': 'Netherlands',
         'Denmark, Kingdom of': 'Denmark',
         'France, Metropolitan': 'France',
-        'United Kingdom[ar]': 'United Kingdom',
+        'United Kingdom': 'United Kingdom',
     }
     return replacements.get(name, name)
 
 def simplify_special_countries(df):
-    """Remove old entries and simplify very long official names"""
-    old_names = [
+    """Remove duplicate / old entries and simplify very long official names"""
+    # Remove old duplicates
+    old_entries = [
         "Netherlands (constituent country)",
-        "United Kingdom →includes: → England; → Northern Ireland; → Scotland; → Wales",
+        "Denmark (constituent country)",
         "France, Metropolitan",
-        "Denmark (constituent country)"
+        "United Kingdom →includes: → England; → Northern Ireland; → Scotland; → Wales"
     ]
-    df = df[~df["name"].isin(old_names)].copy()
+    df = df[~df["name"].isin(old_entries)].copy()
 
+    # Replace long official names with simplified names
     long_to_simple = {
         "Netherlands, Kingdom of →includes: → Aruba; → Curaçao; → Netherlands (constituent country) (including Caribbean Netherlands); → Sint Maarten": "Netherlands",
         "United Kingdom (plus British Overseas Territories and Crown Dependencies) →includes: → Akrotiri and Dhekelia; → Anguilla; → Bermuda; → British Indian Ocean Territory; → British Virgin Islands; → Cayman Islands; → England; → Falkland Islands; → Gibraltar; → Guernsey; → Isle of Man; → Jersey; → Montserrat; → Northern Ireland; → Pitcairn Islands; → Saint Helena, Ascension and Tristan da Cunha; → Scotland; → South Georgia and the South Sandwich Islands; → Turks and Caicos Islands; → Wales": "United Kingdom",
@@ -91,6 +93,7 @@ def simplify_special_countries(df):
         "Denmark, Kingdom of →includes: → Denmark (constituent country); → Faroe Islands; → Greenland": "Denmark"
     }
     df["name"] = df["name"].replace(long_to_simple)
+
     return df
 
 def clean_country_names(df, column="name"):
@@ -136,6 +139,9 @@ def main():
 
     df_borders = clean_country_names(df_borders, column="name")
     print(f"Scraped {len(df_borders)} countries with land borders.")
+
+    # Debug: check simplified countries
+    print(df_borders[df_borders["name"].isin(["France","Netherlands","Denmark","United Kingdom"])])
 
     # Merge with CSV
     try:
