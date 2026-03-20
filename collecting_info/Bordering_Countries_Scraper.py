@@ -79,6 +79,12 @@ def merge_into_csv(df_scraped, csv_path="country_info_updated.csv"):
             print("CSV does not have a 'name' column. Exiting merge.")
             return
 
+        # Check if columns already exist to avoid overwriting or duplicating data
+        existing = [col for col in ["Total_borders_km", "Num_borders", "Neighbors"] if col in df_csv.columns]
+        if existing:
+            print(f"Columns {existing} already exist in CSV. Skipping merge to avoid overwriting.")
+            return
+
         # Left join so all existing CSV rows are kept; scraped columns are added where names match
         df_merged = df_csv.merge(df_scraped, on="name", how="left")
         df_merged.to_csv(csv_path, index=False)
