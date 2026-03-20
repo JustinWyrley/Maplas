@@ -8,20 +8,20 @@ def scrape_land_borders():
     headers = {
         "User-Agent": "StudentResearchBot/1.0 (jochem.van.der.geest.3@student.rug.nl)"
     }
-    
+
     try:
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
     except requests.RequestException as e:
         print(f"Error fetching Wikipedia page: {e}")
         return pd.DataFrame()
-    
+
     soup = BeautifulSoup(response.text, "html.parser")
     table = soup.find("table", class_="wikitable")
     if not table:
         print("No wikitable found on page.")
         return pd.DataFrame()
-    
+
     def clean(cell):
         for sup in cell.find_all("sup"):
             sup.decompose()
@@ -32,29 +32,44 @@ def scrape_land_borders():
         neighbors_raw = [n.strip() for n in text.split(";") if n.strip()]
         neighbors_clean = [re.sub(r"\s+", " ", n).strip() for n in neighbors_raw]
         return "; ".join(neighbors_clean)
-    
+
     rows = table.find_all("tr")
     cols_idx = (0, 1, 4, 5)
     header_cells = rows[0].find_all(["th", "td"])
     header = [clean(header_cells[i]) if i < len(header_cells) else "" for i in cols_idx]
-    
+
     data = []
     for r in rows[1:]:
         cols = r.find_all("td")
         if len(cols) >= max(cols_idx)+1:
             data.append([clean(cols[i]) for i in cols_idx])
-    
+
     df = pd.DataFrame(data, columns=header)
 
-    #Renaming the wikipedia columns for simplicity 
+    # Renaming the wikipedia columns for simplicity
     df.columns = [c.strip() for c in df.columns]
-
     df = df.rename(columns={
         df.columns[0]: "name",
         df.columns[1]: "Total_borders_km",
         df.columns[2]: "Num_borders",
         df.columns[3]: "Neighbors"
     })
+
+    # Filter and clean country names for main entities only
+    def standardize_main_countries(name):
+        # Remove constituent country mentions in parentheses
+        name = re.sub(r"\s*\(constituent country\).*", "", name)
+        name = re.sub(r"\s*\(including.*\)", "", name)
+        # Replace longer descriptions with main country names
+        replacements = {
+            'Netherlands, Kingdom of': 'Netherlands',
+            'Denmark, Kingdom of': 'Denmark',
+            'France, Metropolitan': 'France',
+            'United Kingdom[ar]': 'United Kingdom',
+        }
+        return replacements.get(name, name)
+
+    df["name"] = df["name"].apply(standardize_main_countries)
 
     return df
 
@@ -87,27 +102,34 @@ def clean_country_names(df, column="name"):
     df[column] = df[column].replace(replacements)
     return df
 
+def safe_merge_columns(df_main, df_new, on="name"):
+    """Merge new columns only if they do not already exist"""
+    for col in df_new.columns:
+        if col != on and col not in df_main.columns:
+            df_main = df_main.merge(df_new[[on, col]], on=on, how='left')
+    return df_main
+
 def main():
     print("Scraping Wikipedia for number of land borders...")
     df_borders = scrape_land_borders()
     if df_borders.empty:
         print("No data scraped. Exiting.")
         return
-    
+
     df_borders = clean_country_names(df_borders, column="name")
     print(f"Scraped {len(df_borders)} countries with land borders.")
-    
+
     # Optionally merge with CSV
     try:
         df_csv = pd.read_csv('country_info_updated.csv')
         if 'name' not in df_csv.columns:
             print("CSV does not have a 'name' column. Exiting merge.")
         else:
-            df_merged = df_csv.merge(df_borders, on='name', how='left')
-            df_merged.to_csv('country_info_updated.csv', index=False)
-            print(f"Merged land borders data into country_info_updated.csv ({len(df_merged)} rows).")
+            df_csv = safe_merge_columns(df_csv, df_borders, on='name')
+            df_csv.to_csv('country_info_updated.csv', index=False)
+            print(f"Merged land borders data into country_info_updated.csv ({len(df_csv)} rows).")
     except FileNotFoundError:
-        print("country_info_updated.csv not found. You can save the borders DataFrame separately if needed.")
+        print("country_info_updated.csv not found. Saving scraped data separately.")
         df_borders.to_csv('land_borders.csv', index=False)
         print("Saved scraped data to land_borders.csv for review.")
 
