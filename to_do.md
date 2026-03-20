@@ -10,14 +10,15 @@
 - [ ] Decide on a housestyle, so like 3 colours, fonts we use
 - [x] Add information once the user has geussed or ran out of geusses about the country
 - [ ] add icons to the question to give a visual clue what we ask as well 
-- [x] Currency category is to either hard or super easy, maybe do something else with it(tried to look for pictures of banknotes but couldnt find a database that had all of them). __Use currecny symbol__
-- [ ] Add continent add a category
+- [x] Currency category is to either hard or super easy, maybe do something else with it(tried to look for pictures of banknotes but couldnt find a database that had all of them). __Use currency symbol__
+- [x] Add continent add a category
 - [ ] Add GDP
 - [x] Add streak (maybe go for balatro style flaming number that grows larger and larger also score for getting in few guesses)
-- [] Make streak have balatro style look
+- [ ] Make streak have balatro style look
 - [x] Keep Answers for all previous guesses
 - [x] Make dst more readable
-- [ ] Only show largest language/religion
+- [ ] ~Only show largest language/religion~
+- [ ] Remove religion for further improvement
 - [ ] Change alochol consumption to a ranking
 - [ ] add country shape
 - [ ] Use bordering countries to have list of countries and number of countries that it borders
