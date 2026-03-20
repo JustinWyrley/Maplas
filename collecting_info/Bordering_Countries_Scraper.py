@@ -4,7 +4,6 @@ from bs4 import BeautifulSoup
 import re
 
 
-# This is not working as intened still wip
 def scrape_land_borders():
     url = "https://en.wikipedia.org/wiki/List_of_countries_and_territories_by_number_of_land_borders"
     headers = {
@@ -24,142 +23,76 @@ def scrape_land_borders():
         print("No wikitable found on page.")
         return pd.DataFrame()
 
+    # This clean function was implemented for the 5th column since otherwise the output would be stuck together
     def clean(cell):
+        """Strip footnotes, replace <br> with semicolons, and normalize whitespace."""
         for sup in cell.find_all("sup"):
             sup.decompose()
         for br in cell.find_all("br"):
             br.replace_with("; ")
-        text = cell.get_text()
-        text = text.replace("\xa0", " ")
-        neighbors_raw = [n.strip() for n in text.split(";") if n.strip()]
-        neighbors_clean = [re.sub(r"\s+", " ", n).strip() for n in neighbors_raw]
-        return "; ".join(neighbors_clean)
+        text = cell.get_text().replace("\xa0", " ")
+        parts = [re.sub(r"\s+", " ", n).strip() for n in text.split(";") if n.strip()]
+        return "; ".join(parts)
 
     rows = table.find_all("tr")
-    cols_idx = (0, 1, 4, 5)
-    header_cells = rows[0].find_all(["th", "td"])
-    header = [clean(header_cells[i]) if i < len(header_cells) else "" for i in cols_idx]
+    cols_idx = (0, 1, 4, 5)  # Country name, total border km, no. of borders, neighbours
 
     data = []
-    for r in rows[1:]:
+    for r in rows[1:]:  # Skip header row
         cols = r.find_all("td")
-        if len(cols) >= max(cols_idx)+1:
+        if len(cols) >= max(cols_idx) + 1:
             data.append([clean(cols[i]) for i in cols_idx])
 
-    df = pd.DataFrame(data, columns=header)
+    df = pd.DataFrame(data, columns=["name", "Total_borders_km", "Num_borders", "Neighbors"])
 
-    # Rename columns for simplicity
-    df.columns = [c.strip() for c in df.columns]
-    df = df.rename(columns={
-        df.columns[0]: "name",
-        df.columns[1]: "Total_borders_km",
-        df.columns[2]: "Num_borders",
-        df.columns[3]: "Neighbors"
-    })
-
-    # Standardize names and simplify special countries
-    df["name"] = df["name"].apply(standardize_main_countries)
-    df = simplify_special_countries(df)
-
-    return df
-
-def standardize_main_countries(name):
-    # Remove constituent country mentions
-    name = re.sub(r"\s*\(constituent country\).*", "", name)
-    name = re.sub(r"\s*\(including.*\)", "", name)
-    # Map common long names to main country names
-    replacements = {
-        'Netherlands, Kingdom of': 'Netherlands',
-        'Denmark, Kingdom of': 'Denmark',
-        'France, Metropolitan': 'France',
-        'United Kingdom': 'United Kingdom',
-    }
-    return replacements.get(name, name)
-
-def simplify_special_countries(df):
-    """Remove duplicate / old entries and simplify very long official names"""
-    # Remove old duplicates
-    old_entries = [
+    # Some countries appear twice on Wikipedia: once as a constituent country (e.g. just
+    # "Netherlands") and once as the full Kingdom including overseas territories. We want
+    # the richer entry with more territories, so we drop the simpler duplicates by their
+    # exact scraped name (including the "→includes:" suffix added by the clean function).
+    entries_to_drop = [
         "Netherlands (constituent country)",
         "Denmark (constituent country)",
         "France, Metropolitan",
-        "United Kingdom →includes: → England; → Northern Ireland; → Scotland; → Wales"
+        "United Kingdom →includes: → England; → Northern Ireland; → Scotland; → Wales",
     ]
-    df = df[~df["name"].isin(old_entries)].copy()
+    df = df[~df["name"].isin(entries_to_drop)].copy()
 
-    # Replace long official names with simplified names
+    # Rename the long official Kingdom names to their common names.
+    # The full →includes: string is part of the scraped name, so we match exactly.
     long_to_simple = {
         "Netherlands, Kingdom of →includes: → Aruba; → Curaçao; → Netherlands (constituent country) (including Caribbean Netherlands); → Sint Maarten": "Netherlands",
-        "United Kingdom (plus British Overseas Territories and Crown Dependencies) →includes: → Akrotiri and Dhekelia; → Anguilla; → Bermuda; → British Indian Ocean Territory; → British Virgin Islands; → Cayman Islands; → England; → Falkland Islands; → Gibraltar; → Guernsey; → Isle of Man; → Jersey; → Montserrat; → Northern Ireland; → Pitcairn Islands; → Saint Helena, Ascension and Tristan da Cunha; → Scotland; → South Georgia and the South Sandwich Islands; → Turks and Caicos Islands; → Wales": "United Kingdom",
+        "Denmark, Kingdom of →includes: → Denmark (constituent country); → Faroe Islands; → Greenland": "Denmark",
         "France (including French overseas departments, collectivities, and territories) →includes: → Clipperton Island; → French Guiana; → French Polynesia; → French Southern and Antarctic Lands; → Guadeloupe; → Martinique; → Mayotte; → Metropolitan France; → New Caledonia; → Réunion; → Saint Barthélemy; → Saint Martin; → Saint Pierre and Miquelon; → Wallis and Futuna": "France",
-        "Denmark, Kingdom of →includes: → Denmark (constituent country); → Faroe Islands; → Greenland": "Denmark"
+        "United Kingdom (plus British Overseas Territories and Crown Dependencies) →includes: → Akrotiri and Dhekelia; → Anguilla; → Bermuda; → British Indian Ocean Territory; → British Virgin Islands; → Cayman Islands; → England; → Falkland Islands; → Gibraltar; → Guernsey; → Isle of Man; → Jersey; → Montserrat; → Northern Ireland; → Pitcairn Islands; → Saint Helena, Ascension and Tristan da Cunha; → Scotland; → South Georgia and the South Sandwich Islands; → Turks and Caicos Islands; → Wales": "United Kingdom",
     }
     df["name"] = df["name"].replace(long_to_simple)
 
     return df
 
-def clean_country_names(df, column="name"):
-    replacements = {
-        'Bahamas, The': 'Bahamas',
-        'The Bahamas': 'Bahamas',
-        'Congo, Democratic Republic of the': 'Democratic Republic of the Congo',
-        'DR Congo': 'Democratic Republic of the Congo',
-        'Congo, Republic of the': 'Republic of the Congo',
-        'Gambia, The': 'Gambia',
-        'The Gambia': 'Gambia',
-        'North Macedonia': 'North Macedonia',
-        'Micronesia, Federated States of': 'Federated States of Micronesia',
-        'Russia': 'Russia',
-        'Russian Federation': 'Russia',
-        'South Korea': 'South Korea',
-        'Korea, South': 'South Korea',
-        'Republic of Korea': 'South Korea',
-        'UK': 'United Kingdom',
-        'USA': 'United States',
-        'US': 'United States',
-        "Côte d'Ivoire": "Côte d'Ivoire",
-        'North Korea': 'North Korea',
-        'Korea, North': 'North Korea',
-        'São Tomé and Príncipe': 'São Tomé and Príncipe',
-        'Sao Tome and Principe': 'São Tomé and Príncipe',
-    }
-    df[column] = df[column].replace(replacements)
-    return df
 
-def safe_merge_columns(df_main, df_new, on="name"):
-    for col in df_new.columns:
-        if col != on and col not in df_main.columns:
-            df_main = df_main.merge(df_new[[on, col]], on=on, how='left')
-    return df_main
-
-def main():
-    print("Scraping Wikipedia for number of land borders...")
-    df_borders = scrape_land_borders()
-    if df_borders.empty:
-        print("No data scraped. Exiting.")
-        return
-
-    df_borders = clean_country_names(df_borders, column="name")
-    print(f"Scraped {len(df_borders)} countries with land borders.")
-
-    # Debug: check simplified countries
-    print(df_borders[df_borders["name"].isin(["France","Netherlands","Denmark","United Kingdom"])])
-
-    # Merge with CSV
+def merge_into_csv(df_scraped, csv_path="country_info_updated.csv"):
+    """Merge scraped border data into an existing CSV on the 'name' column.
+    If the CSV is not found, save the scraped data on its own instead."""
     try:
-        countries = pd.read_csv('collecting_info/country_info_updated.csv')
-        if 'name' not in countries.columns:
+        df_csv = pd.read_csv(csv_path)
+        if "name" not in df_csv.columns:
             print("CSV does not have a 'name' column. Exiting merge.")
-        else:
-            # Standardize CSV names to match scraped data
-            countries["name"] = countries["name"].apply(standardize_main_countries)
-            countries = simplify_special_countries(countries)
+            return
 
-            countries = safe_merge_columns(countries, df_borders, on='name')
-            countries.to_csv('collecting_info/country_info_updated.csv', index=False)
-            print(f"Merged land borders data into country_info_updated.csv ({len(countries)} rows).")
+        # Left join so all existing CSV rows are kept; scraped columns are added where names match
+        df_merged = df_csv.merge(df_scraped, on="name", how="left")
+        df_merged.to_csv(csv_path, index=False)
+        print(f"Merged land borders data into {csv_path} ({len(df_merged)} rows).")
+
     except FileNotFoundError:
-        print("country_info_updated.csv not found. Saving scraped data separately.")
+        print(f"{csv_path} not found. Saving scraped data to land_borders.csv instead.")
+        df_scraped.to_csv("land_borders.csv", index=False)
+
 
 if __name__ == "__main__":
-    main()
+    df = scrape_land_borders()
+    if df.empty:
+        print("No data scraped. Exiting.")
+    else:
+        print(f"Scraped {len(df)} countries/territories.")
+        merge_into_csv(df)
