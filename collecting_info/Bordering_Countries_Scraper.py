@@ -75,7 +75,24 @@ def standardize_main_countries(name):
     return replacements.get(name, name)
 
 def simplify_special_countries(df):
-    """Remove old entries and simplify very long official names"""
+    """KEEP the colonial entries (with long names), remove the simple ones, then rename"""
+    
+    # First, identify which names are the colonial versions (the ones we want to keep)
+    colonial_versions = {
+        "Netherlands, Kingdom of →includes: → Aruba; → Curaçao; → Netherlands (constituent country) (including Caribbean Netherlands); → Sint Maarten": "Netherlands",
+        "United Kingdom (plus British Overseas Territories and Crown Dependencies) →includes: → Akrotiri and Dhekelia; → Anguilla; → Bermuda; → British Indian Ocean Territory; → British Virgin Islands; → Cayman Islands; → England; → Falkland Islands; → Gibraltar; → Guernsey; → Isle of Man; → Jersey; → Montserrat; → Northern Ireland; → Pitcairn Islands; → Saint Helena, Ascension and Tristan da Cunha; → Scotland; → South Georgia and the South Sandwich Islands; → Turks and Caicos Islands; → Wales": "United Kingdom",
+        "France (including French overseas departments, collectivities, and territories) →includes: → Clipperton Island; → French Guiana; → French Polynesia; → French Southern and Antarctic Lands; → Guadeloupe; → Martinique; → Mayotte; → Metropolitan France; → New Caledonia; → Réunion; → Saint Barthélemy; → Saint Martin; → Saint Pierre and Miquelon; → Wallis and Futuna": "France",
+        "Denmark, Kingdom of →includes: → Denmark (constituent country); → Faroe Islands; → Greenland": "Denmark"
+    }
+    
+    # Remove the simple names (the ones we don't want)
+    simple_names_to_remove = ["Netherlands", "Denmark", "France", "United Kingdom"]
+    df = df[~df["name"].isin(simple_names_to_remove)].copy()
+    
+    # Rename the colonial versions to the simple country names
+    df["name"] = df["name"].replace(colonial_versions)
+    
+    # Also remove any old entries that might have been missed
     old_names = [
         "Netherlands (constituent country)",
         "United Kingdom →includes: → England; → Northern Ireland; → Scotland; → Wales",
@@ -83,14 +100,7 @@ def simplify_special_countries(df):
         "Denmark (constituent country)"
     ]
     df = df[~df["name"].isin(old_names)].copy()
-
-    long_to_simple = {
-        "Netherlands, Kingdom of →includes: → Aruba; → Curaçao; → Netherlands (constituent country) (including Caribbean Netherlands); → Sint Maarten": "Netherlands",
-        "United Kingdom (plus British Overseas Territories and Crown Dependencies) →includes: → Akrotiri and Dhekelia; → Anguilla; → Bermuda; → British Indian Ocean Territory; → British Virgin Islands; → Cayman Islands; → England; → Falkland Islands; → Gibraltar; → Guernsey; → Isle of Man; → Jersey; → Montserrat; → Northern Ireland; → Pitcairn Islands; → Saint Helena, Ascension and Tristan da Cunha; → Scotland; → South Georgia and the South Sandwich Islands; → Turks and Caicos Islands; → Wales": "United Kingdom",
-        "France (including French overseas departments, collectivities, and territories) →includes: → Clipperton Island; → French Guiana; → French Polynesia; → French Southern and Antarctic Lands; → Guadeloupe; → Martinique; → Mayotte; → Metropolitan France; → New Caledonia; → Réunion; → Saint Barthélemy; → Saint Martin; → Saint Pierre and Miquelon; → Wallis and Futuna": "France",
-        "Denmark, Kingdom of →includes: → Denmark (constituent country); → Faroe Islands; → Greenland": "Denmark"
-    }
-    df["name"] = df["name"].replace(long_to_simple)
+    
     return df
 
 def clean_country_names(df, column="name"):
@@ -135,12 +145,7 @@ def main():
         return
 
     df_borders = clean_country_names(df_borders, column="name")
-    
-    # Filter out colonial countries from the scraped data
-    colonial_countries = ['United Kingdom', 'France', 'Netherlands', 'Denmark', 'Spain', 'Portugal', 'Belgium', 'Italy', 'Germany']
-    df_borders = df_borders[~df_borders['name'].isin(colonial_countries)]
-    
-    print(f"Scraped {len(df_borders)} countries with land borders (colonial countries removed).")
+    print(f"Scraped {len(df_borders)} countries with land borders.")
 
     # Merge with CSV
     try:
