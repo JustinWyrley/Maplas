@@ -1,53 +1,78 @@
+import pandas as pd
 import requests
 from bs4 import BeautifulSoup
-import pandas as pd
 
-# URL for flag colors
-url = "https://flagpictures.com/countries/flag-colors/"
 
-response = requests.get(url, verify=False)
-soup = BeautifulSoup(response.content, "html.parser")
+def scrape_flag_colours():
+    """Scrape flag colours per country from flagpictures.com."""
+    url = "https://flagpictures.com/countries/flag-colors/"
 
-# Extract table rows
-rows = soup.find_all("tr")
+    try:
+        # verify=False because the site has SSL certificate issues
+        response = requests.get(url, verify=False, timeout=10)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        print(f"Error fetching page: {e}")
+        return pd.DataFrame()
 
-# Mapping scraped names to dataset names
-name_mapping = {
-    "Czechia": "Czech Republic",
-    "Côte D’Ivoire": "Ivory Coast",
-    "Democratic Republic Of The Congo": "Democratic Republic of the Congo",
-    "Georgia": "Georgia (country)",
-    "Republic Of The Congo": "Republic of the Congo",
-    "Russian Federation": "Russia",
-    "Syrian Arab Republic": "Syria",
-    "Tanzania, United Republic Of": "Tanzania"
-}
+    soup = BeautifulSoup(response.content, "html.parser")
+    rows = soup.find_all("tr")
 
-# Scrape flag colors
-scraped_data = []
+    # Some scraped names differ from the names used in our CSV, so we map them manually
+    name_mapping = {
+        "Czechia": "Czech Republic",
+        "Côte D'Ivoire": "Ivory Coast",
+        "Democratic Republic Of The Congo": "Democratic Republic of the Congo",
+        "Georgia": "Georgia (country)",
+        "Republic Of The Congo": "Republic of the Congo",
+        "Russian Federation": "Russia",
+        "Syrian Arab Republic": "Syria",
+        "Tanzania, United Republic Of": "Tanzania",
+    }
 
-for row in rows:
-    cols = row.find_all("td")
-    if len(cols) >= 2:
-        country = cols[0].get_text(strip=True)
-        colors = cols[1].get_text(separator=", ", strip=True)
-        
-        # Normalize country name
-        if country in name_mapping:
-            country = name_mapping[country]
-        
-        scraped_data.append((country, colors))
+    data = []
+    for row in rows:
+        cols = row.find_all("td")
+        if len(cols) >= 2:
+            country = cols[0].get_text(strip=True)
+            colours = cols[1].get_text(separator=", ", strip=True)
+            country = name_mapping.get(country, country)  # Apply mapping if exists
+            data.append([country, colours])
 
-# Convert to DataFrame
-df_flags_colours = pd.DataFrame(scraped_data, columns=["name", "flag_colours"])
+    return pd.DataFrame(data, columns=["name", "flag_colours"])
 
-try:
-    countries = pd.read_csv('collecting_info/country_info_updated.csv')
-    if 'name' not in countries.columns:
-        print("CSV does not have a 'name' column. Exiting merge.")
+
+def merge_into_csv(df_scraped, csv_path="country_info_updated.csv"):
+    """Merge scraped flag colour data into an existing CSV on the 'name' column.
+    If the CSV is not found, save the scraped data on its own instead."""
+    try:
+        df_csv = pd.read_csv(csv_path)
+        if "name" not in df_csv.columns:
+            print("CSV does not have a 'name' column. Exiting merge.")
+            return
+
+        # Check if column already exists to avoid overwriting or duplicating data
+        if "flag_colours" in df_csv.columns:
+            print("Column 'flag_colours' already exists in CSV. Skipping merge to avoid overwriting.")
+            return
+
+        df_merged = df_csv.merge(df_scraped, on="name", how="left")
+        matched = df_merged["flag_colours"].notna().sum()
+        print(f"Matched {matched} out of {len(df_merged)} countries.")
+
+        df_merged.to_csv(csv_path, index=False)
+        print(f"Updated {csv_path} with flag colour data.")
+
+    except FileNotFoundError:
+        print(f"{csv_path} not found. Saving scraped data to flag_colours.csv instead.")
+        df_scraped.to_csv("flag_colours.csv", index=False)
+
+
+if __name__ == "__main__":
+    print("Scraping flag colours...")
+    df = scrape_flag_colours()
+    if df.empty:
+        print("No data scraped. Exiting.")
     else:
-        df_merged = countries.merge(df_flags_colours, on='name', how='left')
-        df_merged.to_csv('collecting_info/country_info_updated.csv', index=False)
-        print(f"Merged flag colors into country_info_updated.csv ({len(df_merged)} rows).")
-except FileNotFoundError:
-    print("country_info_updated.csv not found.")
+        print(f"Scraped {len(df)} countries.")
+        merge_into_csv(df)
