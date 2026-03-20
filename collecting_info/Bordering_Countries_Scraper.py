@@ -50,6 +50,19 @@ def scrape_land_borders():
     df = pd.DataFrame(data, columns=header)
     return df
 
+    df = pd.DataFrame(data, columns=header)
+
+    # Clean column names
+    df.columns = [c.strip() for c in df.columns]
+
+    # Rename key columns to stable names
+    df = df.rename(columns={
+    df.columns[0]: "Country",
+    df.columns[1]: "Total_borders_km",
+    df.columns[2]: "Num_borders",
+    df.columns[3]: "Neighbors"
+    })
+
 def clean_country_names(df, column="Country"):
     """Standardize country names to match CSV 'name' column"""
     replacements = {
