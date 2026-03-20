@@ -16,8 +16,8 @@ BASE_DIR = Path(__file__).parent
 
 DATA_URL = "https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_50m_admin_0_countries.geojson"
 
-OUTPUT_PNG = BASE_DIR / "collecting_info/countries"
-CSV_PATH   = BASE_DIR / "collecting_info/country_info_updated.csv"
+OUTPUT_PNG = BASE_DIR / "countries"
+CSV_PATH   = BASE_DIR / "country_info_updated.csv"
 
 # The Natural Earth dataset uses different names for some countries.
 # This mapping translates our CSV names to the dataset names so we can match them.
