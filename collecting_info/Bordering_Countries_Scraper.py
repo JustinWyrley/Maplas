@@ -50,7 +50,7 @@ def scrape_land_borders():
     df.columns = [c.strip() for c in df.columns]
 
     df = df.rename(columns={
-        df.columns[0]: "Country",
+        df.columns[0]: "name",
         df.columns[1]: "Total_borders_km",
         df.columns[2]: "Num_borders",
         df.columns[3]: "Neighbors"
@@ -58,7 +58,7 @@ def scrape_land_borders():
 
     return df
 
-def clean_country_names(df, column="Country"):
+def clean_country_names(df, column="name"):
     """Standardize country names to match CSV 'name' column"""
     replacements = {
         'Bahamas, The': 'Bahamas',
@@ -94,7 +94,7 @@ def main():
         print("No data scraped. Exiting.")
         return
     
-    df_borders = clean_country_names(df_borders, column="Country")
+    df_borders = clean_country_names(df_borders, column="name")
     print(f"Scraped {len(df_borders)} countries with land borders.")
     
     # Optionally merge with CSV
@@ -103,7 +103,7 @@ def main():
         if 'name' not in df_csv.columns:
             print("CSV does not have a 'name' column. Exiting merge.")
         else:
-            df_merged = df_csv.merge(df_borders, left_on='name', right_on='Country', how='left')
+            df_merged = df_csv.merge(df_borders, on='name', how='left')
             df_merged.to_csv('country_info_updated.csv', index=False)
             print(f"Merged land borders data into country_info_updated.csv ({len(df_merged)} rows).")
     except FileNotFoundError:
