@@ -4,7 +4,6 @@ from bs4 import BeautifulSoup
 import re
 
 def scrape_land_borders():
-    """Scrape countries and their land borders from Wikipedia"""
     url = "https://en.wikipedia.org/wiki/List_of_countries_and_territories_by_number_of_land_borders"
     headers = {
         "User-Agent": "StudentResearchBot/1.0 (jochem.van.der.geest.3@student.rug.nl)"
@@ -23,7 +22,6 @@ def scrape_land_borders():
         print("No wikitable found on page.")
         return pd.DataFrame()
     
-    # Function to clean a cell
     def clean(cell):
         for sup in cell.find_all("sup"):
             sup.decompose()
@@ -35,9 +33,8 @@ def scrape_land_borders():
         neighbors_clean = [re.sub(r"\s+", " ", n).strip() for n in neighbors_raw]
         return "; ".join(neighbors_clean)
     
-    # Extract rows
     rows = table.find_all("tr")
-    cols_idx = (0, 1, 4, 5)  # columns we want
+    cols_idx = (0, 1, 4, 5)
     header_cells = rows[0].find_all(["th", "td"])
     header = [clean(header_cells[i]) if i < len(header_cells) else "" for i in cols_idx]
     
@@ -48,20 +45,18 @@ def scrape_land_borders():
             data.append([clean(cols[i]) for i in cols_idx])
     
     df = pd.DataFrame(data, columns=header)
-    return df
 
-    df = pd.DataFrame(data, columns=header)
-
-    # Clean column names
+    #Renaming the wikipedia columns for simplicity 
     df.columns = [c.strip() for c in df.columns]
 
-    # Rename key columns to stable names
     df = df.rename(columns={
-    df.columns[0]: "Country",
-    df.columns[1]: "Total_borders_km",
-    df.columns[2]: "Num_borders",
-    df.columns[3]: "Neighbors"
+        df.columns[0]: "Country",
+        df.columns[1]: "Total_borders_km",
+        df.columns[2]: "Num_borders",
+        df.columns[3]: "Neighbors"
     })
+
+    return df
 
 def clean_country_names(df, column="Country"):
     """Standardize country names to match CSV 'name' column"""
