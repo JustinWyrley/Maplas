@@ -91,23 +91,23 @@ def create_ranking(df):
 
 def main():
     print("Scraping Wikipedia for alcohol consumption data...")
-    df_wiki = scrape_alcohol_data()
-    if df_wiki.empty:
+    alc_consumption = scrape_alcohol_data()
+    if alc_consumption.empty:
         print("No data scraped. Exiting.")
         return
 
-    df_wiki = clean_country_names(df_wiki)
-    df_wiki = create_ranking(df_wiki)
+    alc_consumption = clean_country_names(alc_consumption)
+    alc_consumption = create_ranking(alc_consumption)
 
     # Rename 'country' column to match your CSV 'name'
-    df_wiki.rename(columns={'country': 'name'}, inplace=True)
+    alc_consumption.rename(columns={'country': 'name'}, inplace=True)
 
-    print(f"Scraped and ranked {len(df_wiki)} countries.")
+    print(f"Scraped and ranked {len(alc_consumption)} countries.")
 
     # Load CSV
     try:
-        df_csv = pd.read_csv('country_info_updated.csv')
-        if 'name' not in df_csv.columns:
+        countries = pd.read_csv('collecting_info/country_info_updated.csv')
+        if 'name' not in countries.columns:
             print("CSV does not have a 'name' column. Exiting.")
             return
     except FileNotFoundError:
@@ -115,14 +115,14 @@ def main():
         return
 
     # Merge scraped data into CSV
-    df_merged = df_csv.merge(df_wiki[['name', 'alcohol_consumption', 'alcohol_consumption_ranked']],
+    df_merged = countries.merge(alc_consumption[['name', 'alcohol_consumption', 'alcohol_consumption_ranked']],
                              on='name', how='left')
 
     matched = df_merged['alcohol_consumption'].notna().sum()
     print(f"Successfully matched {matched} out of {len(df_merged)} countries.")
 
     # Save updated CSV
-    df_merged.to_csv('country_info_updated.csv', index=False)
+    df_merged.to_csv('collecting_info/country_info_updated.csv', index=False)
     print("Updated country_info_updated.csv with alcohol_consumption and ranking.")
 
 if __name__ == "__main__":

@@ -15,12 +15,12 @@ import pandas as pd
 BASE_DIR = Path(__file__).parent
 DATA_URL = "https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_50m_admin_0_countries.geojson"
 
-OUTPUT_GEOJSON = BASE_DIR / "countries_geojson"
-OUTPUT_PNG = BASE_DIR / "countries_png"
+OUTPUT_GEOJSON = BASE_DIR / "countries/countries_geojson"
+OUTPUT_PNG = BASE_DIR / "countries/countries_png"
 
 CSV_PATH = BASE_DIR / "country_info_updated.csv"  # CSV to update
 
-# Your original country list
+# change to using csv to get countries
 TARGET_COUNTRIES = set([
     "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", 
     "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", 

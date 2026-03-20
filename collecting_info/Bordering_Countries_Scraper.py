@@ -3,6 +3,8 @@ import requests
 from bs4 import BeautifulSoup
 import re
 
+
+# This is not working as intened still wip
 def scrape_land_borders():
     url = "https://en.wikipedia.org/wiki/List_of_countries_and_territories_by_number_of_land_borders"
     headers = {
@@ -145,21 +147,19 @@ def main():
 
     # Merge with CSV
     try:
-        df_csv = pd.read_csv('country_info_updated.csv')
-        if 'name' not in df_csv.columns:
+        countries = pd.read_csv('collecting_info/country_info_updated.csv')
+        if 'name' not in countries.columns:
             print("CSV does not have a 'name' column. Exiting merge.")
         else:
             # Standardize CSV names to match scraped data
-            df_csv["name"] = df_csv["name"].apply(standardize_main_countries)
-            df_csv = simplify_special_countries(df_csv)
+            countries["name"] = countries["name"].apply(standardize_main_countries)
+            countries = simplify_special_countries(countries)
 
-            df_csv = safe_merge_columns(df_csv, df_borders, on='name')
-            df_csv.to_csv('country_info_updated.csv', index=False)
-            print(f"Merged land borders data into country_info_updated.csv ({len(df_csv)} rows).")
+            countries = safe_merge_columns(countries, df_borders, on='name')
+            countries.to_csv('collecting_info/country_info_updated.csv', index=False)
+            print(f"Merged land borders data into country_info_updated.csv ({len(countries)} rows).")
     except FileNotFoundError:
         print("country_info_updated.csv not found. Saving scraped data separately.")
-        df_borders.to_csv('land_borders.csv', index=False)
-        print("Saved scraped data to land_borders.csv for review.")
 
 if __name__ == "__main__":
     main()
