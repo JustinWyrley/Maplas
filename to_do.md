@@ -19,8 +19,8 @@
 - [x] Make dst more readable
 - [ ] ~Only show largest language/religion~
 - [ ] Remove religion for further improvement
-- [ ] Change alochol consumption to a ranking
-- [ ] add country shape
+- [x] Change alochol consumption to a ranking
+- [x] add country shape
 - [ ] Use bordering countries to have list of countries and number of countries that it borders
 - [x] If you press enter when it is empty that should not use a guess
 - [ ] When showing timezone only show utc +/- number and then say if the correct answer is higher or lower
