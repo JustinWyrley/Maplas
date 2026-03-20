@@ -27,4 +27,5 @@
 - [ ] Make loading icon world map silhouette
 - [ ] Add a drop down to show added info
 - [ ] In countries have another directiory for flags, anthems to improve readability
+- [ ] Update requirements
   
