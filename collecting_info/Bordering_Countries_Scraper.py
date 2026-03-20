@@ -122,6 +122,10 @@ def clean_country_names(df, column="name"):
     return df
 
 def safe_merge_columns(df_main, df_new, on="name"):
+    # Filter out colonial countries from df_new BEFORE merging
+    colonial_countries = ['United Kingdom', 'France', 'Netherlands', 'Denmark', 'Spain', 'Portugal', 'Belgium', 'Italy', 'Germany']
+    df_new = df_new[~df_new[on].isin(colonial_countries)]
+    
     for col in df_new.columns:
         if col != on and col not in df_main.columns:
             df_main = df_main.merge(df_new[[on, col]], on=on, how='left')
@@ -147,6 +151,7 @@ def main():
             df_csv["name"] = df_csv["name"].apply(standardize_main_countries)
             df_csv = simplify_special_countries(df_csv)
 
+            # Merge - now colonial countries will be filtered out during merge
             df_csv = safe_merge_columns(df_csv, df_borders, on='name')
             df_csv.to_csv('country_info_updated.csv', index=False)
             print(f"Merged land borders data into country_info_updated.csv ({len(df_csv)} rows).")
