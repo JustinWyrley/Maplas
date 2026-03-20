@@ -50,3 +50,7 @@ try:
         df_merged = df_csv.merge(df_flags_colours, on='name', how='left')
         df_merged.to_csv('country_info_updated.csv', index=False)
         print(f"Merged flag colors into country_info_updated.csv ({len(df_merged)} rows).")
+except FileNotFoundError:
+    print("country_info_updated.csv not found. Saving scraped data separately.")
+    df_flags_colours.to_csv('flag_colors.csv', index=False)
+    print("Saved scraped data to flag_colors.csv for review.")
