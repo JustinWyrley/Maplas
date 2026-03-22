@@ -12,7 +12,7 @@ BASE_DIR = Path(__file__).parent
 COUNTRIES_DIR = BASE_DIR / 'countries'
 
 HEADERS = {
-    "User-Agent": "CountryDataScraperBot/1.0 (justinwyrley@icloud.com) python-requests/2.x"
+    "User-Agent": "CountryDataScraperBot/1.0 python-requests/2.x"
 }
 
 session = requests.Session()
