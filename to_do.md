@@ -27,6 +27,8 @@
 - [ ] Make loading icon world map silhouette
 - [ ] Add a drop down to show added info
 - [ ] In countries have another directiory for flags, anthems to improve readability
+  Notes from playtesting
 - [ ] The capitol scraping for Dubai seems to be wrong should only include Abu Dhabi
+- [ ] Anthem feels like a useless hint, If we want to use it maybe play it once a player geusses correctly? 
 - [ ] Update requirements
   
