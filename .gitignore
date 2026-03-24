@@ -1,0 +1,6 @@
+# Scraped / generated media and data files - run the scrapers locally to regenerate these
+*.png
+*.mp3
+*.ogg
+*.oga
+*.csv
