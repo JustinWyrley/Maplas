@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geo Trivia Game</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div id="main-layout">
+    <div id="left-panel">
+        <div class="card">
+            <div class="stats-header">
+                <span id="guess-counter">
+                    {%- if game_over and not won -%}
+                        Out of Guesses!
+                    {%- else -%}
+                        Guess {{ guess_count + 1 }} of {{ MAX_GUESSES }}
+                    {%- endif -%}
+                </span>
+                <span id="streak-counter">🔥 Streak: {{ streak }}</span>
+            </div>
+            <div id="message-area"
+                 style="color: {% if game_over %}{% if won %}#4caf50{% else %}#e53935{% endif %}{% else %}#333{% endif %}">
+                {%- if game_over -%}
+                    {%- if won -%}
+                        Brilliant! You guessed {{ target_name }} correctly.
+                    {%- else -%}
+                        Game Over! The correct answer was {{ target_name }}.
+                    {%- endif -%}
+                {%- endif -%}
+            </div>
+        </div>
+
+        <div class="input-group">
+            <div class="autocomplete-container">
+                <input type="text" id="guess-input" placeholder="Type a country name..."
+                       autocomplete="off" {% if game_over %}disabled{% endif %}>
+                <div id="autocomplete-list" class="autocomplete-list"></div>
+            </div>
+            <button id="submit-btn" onclick="handleGuess()"
+                    {% if game_over %}disabled{% endif %}>Guess</button>
+        </div>
+
+        {# Next Round is a plain form POST so it works without JS too #}
+        <form method="POST" action="{{ url_for('new_round') }}" style="margin:0">
+            <button id="play-again-btn" type="submit"
+                    style="{% if not game_over %}display:none{% endif %}">
+                Next Round
+            </button>
+        </form>
+    </div>
+
+    <div id="right-panel">
+        <div id="clues-container" class="clues-grid">
+
+            {%- for clue in revealed_clues -%}
+
+                {%- if clue.key == 'flag' -%}
+                    <div class="clue-box full-width-container">
+                        <div class="clue-title">FLAG</div>
+                        <img src="{{ media_url(clue.display_val) }}" alt="Flag clue">
+                    </div>
+
+                {%- elif clue.key == 'anthem' -%}
+                    <div class="clue-box full-width-container">
+                        <div class="clue-title">NATIONAL ANTHEM</div>
+                        <audio controls controlsList="nodownload noplaybackrate">
+                            <source src="{{ media_url(clue.display_val) }}">
+                        </audio>
+                    </div>
+
+                {%- elif clue.key == '__no_more__' -%}
+                    <div class="clue-box full-width-container">
+                        <div class="clue-title">NO MORE CLUES</div>
+                        <div class="clue-value">Further data unavailable</div>
+                    </div>
+
+                {%- else -%}
+                    {%- set last_guess = clue.guesses[-1] if clue.guesses else none -%}
+                    <div class="clue-box data-clue
+                        {%- if last_guess %} {% if last_guess.result == 'match' %}bg-green{% else %}bg-red{% endif %}{% endif %}"
+                         data-category="{{ clue.key }}">
+                        <div class="clue-title">{{ clue.title }}</div>
+                        <div class="clue-value">{{ clue.display_val }}</div>
+                        <div class="guess-feedback"
+                             {% if clue.guesses %}style="display:block"{% endif %}>
+                            {%- for g in clue.guesses -%}
+                                {%- if clue.key in NUM_CATEGORIES -%}
+                                    {%- if g.result == 'match' -%}
+                                        <div class="guess-entry">
+                                            <strong>{{ g.name }}:</strong> Match!
+                                        </div>
+                                    {%- else -%}
+                                        <div class="guess-entry">
+                                            <strong>{{ g.name }}:</strong> {{ g.guessed_val }}
+                                            <span class="arrow">
+                                                {%- if g.result == 'higher' -%}⬆️
+                                                {%- elif g.result == 'lower' -%}⬇️
+                                                {%- endif -%}
+                                            </span>
+                                        </div>
+                                    {%- endif -%}
+                                {%- else -%}
+                                    <div class="guess-entry">
+                                        <strong>{{ g.name }}:</strong> {{ g.guessed_val }}
+                                    </div>
+                                {%- endif -%}
+                            {%- endfor -%}
+                        </div>
+                    </div>
+
+                {%- endif -%}
+
+            {%- endfor -%}
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // Seed data for game.js
+    const GAME_STATE = {
+        gameOver:  {{ 'true' if game_over else 'false' }},
+        won:       {{ 'true' if won else 'false' }},
+        guessCount: {{ guess_count }},
+        streak:    {{ streak }},
+        maxGuesses: {{ MAX_GUESSES }},
+    };
+    const COUNTRY_NAMES = {{ country_names | tojson }};
+</script>
+<script src="{{ url_for('static', filename='game.js') }}"></script>
+
+</body>
+</html>
