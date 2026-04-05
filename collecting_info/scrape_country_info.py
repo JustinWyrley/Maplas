@@ -168,8 +168,6 @@ def get_country_data(url):
             
         flag_url = flag_img['src'] if flag_img else None
         
-        audio_src = soup.select_one('.infobox audio source')
-        anthem_url = audio_src['src'] if audio_src else None
         
         country_slug = urllib.parse.unquote(url.split('/')[-1]).replace(' ', '_')
         
@@ -180,14 +178,6 @@ def get_country_data(url):
             facts['flag_path'] = download_media(flag_url, flag_path)
         else:
             facts['flag_path'] = None
-
-        if anthem_url:
-            time.sleep(5)
-            ext = anthem_url.split('.')[-1].split('?')[0]
-            anthem_path = COUNTRIES_DIR / f"{country_slug}_anthem.{ext}"
-            facts['anthem_path'] = download_media(anthem_url, anthem_path)
-        else:
-            facts['anthem_path'] = None
 
         return facts
 

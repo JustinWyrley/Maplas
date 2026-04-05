@@ -103,7 +103,7 @@ def main():
     df = pd.read_csv('collecting_info/country_info.csv')
 
     # Add duck data
-    duck = pd.read_csv('collecting_info/random_data/duck_data.csv', dtype={'Population Count': str, 'Ducks Per Capita (per 1.000)': str})
+    duck = pd.read_csv('collecting_info\duck_populations.csv', dtype={'Population Count': str, 'Ducks Per Capita (per 1.000)': str})
     duck['name'] = duck['Country/Territory']
     duck.reset_index(inplace=True)
     duck['index'] = duck['index'] + 1
@@ -147,12 +147,12 @@ def main():
     df['capital'] = df['capital'].str.extract(r'^(\D+)')[0].str.strip()
 
     # Add continents
-    continents = pd.read_csv('collecting_info/random_data/list-of-countries-by-continent-2026.csv')
+    continents = pd.read_csv('collecting_info\list-of-countries-by-continent-2026.csv')
     continents.rename(columns={'country': 'name'}, inplace=True)
     df = pd.merge(df, continents[['name', 'continent']], on='name', how='left')
 
     # Final Save
-    df.to_csv('country_info_updated.csv', index=False)
+    df.to_csv('collecting_info\country_info_updated.csv', index=False)
     print("Process complete. File saved as 'country_info_updated.csv'.")
 
 if __name__ == "__main__":

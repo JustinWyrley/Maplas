@@ -42,7 +42,7 @@ def scrape_flag_colours():
     return pd.DataFrame(data, columns=["name", "flag_colours"])
 
 
-def merge_into_csv(df_scraped, csv_path="country_info_updated.csv"):
+def merge_into_csv(df_scraped, csv_path="collecting_info\country_info_updated.csv"):
     """Merge scraped flag colour data into an existing CSV on the 'name' column.
     If the CSV is not found, save the scraped data on its own instead."""
     try:

@@ -140,7 +140,7 @@ def process_country(feature, target_countries):
     ax.set_ylim(miny - padding_y, maxy + padding_y)
     ax.set_axis_off()
 
-    png_path = OUTPUT_PNG / f"{safe_name}.png"
+    png_path = OUTPUT_PNG / f"{safe_name}_outline.png"
     plt.savefig(png_path, dpi=300, bbox_inches="tight", pad_inches=0, transparent=True)
     plt.close()
 
