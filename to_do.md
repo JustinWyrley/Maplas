@@ -7,9 +7,9 @@
 - [x] Reorder and rank information 
 - [x] use arrow keys to navigate shown options
 - [ ] Little information note under each hint to show what it means, e.g: " Observed dst" might be unclear 
-- [ ] Decide on a housestyle, so like 3 colours, fonts we use
+- [] Decide on a housestyle, so like 3 colours, fonts we use
 - [x] Add information once the user has geussed or ran out of geusses about the country
-- [ ] add icons to the question to give a visual clue what we ask as well 
+- [] add icons to the question to give a visual clue what we ask as well 
 - [x] Currency category is to either hard or super easy, maybe do something else with it(tried to look for pictures of banknotes but couldnt find a database that had all of them). __Use currency symbol__
 - [x] Add continent add a category
 - [ ] Add GDP
@@ -18,7 +18,7 @@
 - [x] Keep Answers for all previous guesses
 - [x] Make dst more readable
 - [ ] ~Only show largest language/religion~
-- [ ] Remove religion for further improvement
+- [x] Remove religion for further improvement
 - [x] Change alochol consumption to a ranking
 - [x] add country shape
 - [ ] Use bordering countries to have list of countries and number of countries that it borders
@@ -28,7 +28,13 @@
 - [ ] Add a drop down to show added info
 - [ ] In countries have another directiory for flags, anthems to improve readability
   Notes from playtesting
-- [ ] The capitol scraping for Dubai seems to be wrong should only include Abu Dhabi
-- [ ] Anthem feels like a useless hint, If we want to use it maybe play it once a player geusses correctly? 
+- [] The capital scraping for Dubai seems to be wrong should only include Abu Dhabi
+- [x] Anthem feels like a useless hint, If we want to use it maybe play it once a player geusses correctly? 
 - [ ] Update requirements
+- [x] Add a main file to run all the scrapers 
+- [ ] Fix the order of the scrapers 
+- [ ] Make more colourblind friendly
+- [ ] Update README remove ai bs and flask
+- [ ] Have just one country.csv dont need 3 build on one 
+- [ ] data cleaner run last and make everything string
   
