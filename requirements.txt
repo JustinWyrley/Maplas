@@ -1,7 +1,8 @@
 requests
-bs4
+beautifulsoup4
 pandas
-re
 geopandas
-matplotlib.pyplot
-flask
+matplotlib
+tqdm
+shapely
+urllib3
