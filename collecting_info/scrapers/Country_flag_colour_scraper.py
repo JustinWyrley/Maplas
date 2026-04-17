@@ -1,6 +1,10 @@
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
+from pathlib import Path
+
+BASE_DIR = Path(__file__).parent.parent
+DATA_DIR = BASE_DIR / 'data'
 
 
 def scrape_flag_colours():
@@ -42,9 +46,11 @@ def scrape_flag_colours():
     return pd.DataFrame(data, columns=["name", "flag_colours"])
 
 
-def merge_into_csv(df_scraped, csv_path="collecting_info\country_info_updated.csv"):
+def merge_into_csv(df_scraped, csv_path=None):
     """Merge scraped flag colour data into an existing CSV on the 'name' column.
     If the CSV is not found, save the scraped data on its own instead."""
+    if csv_path is None:
+        csv_path = DATA_DIR / 'country_info_updated.csv'
     try:
         df_csv = pd.read_csv(csv_path)
         if "name" not in df_csv.columns:
@@ -64,8 +70,9 @@ def merge_into_csv(df_scraped, csv_path="collecting_info\country_info_updated.cs
         print(f"Updated {csv_path} with flag colour data.")
 
     except FileNotFoundError:
-        print(f"{csv_path} not found. Saving scraped data to flag_colours.csv instead.")
-        df_scraped.to_csv("flag_colours.csv", index=False)
+        output_path = DATA_DIR / 'flag_colours.csv'
+        print(f"{csv_path} not found. Saving scraped data to {output_path} instead.")
+        df_scraped.to_csv(output_path, index=False)
 
 
 if __name__ == "__main__":
